@@ -45,25 +45,27 @@ class ExplorerBase<T extends ExplorerOptions | ExplorerOptionsSync> {
   private validateConfig(): void {
     const config = this.config;
 
-    config.searchPlaces.forEach((place): void => {
-      const loaderKey = path.extname(place) || 'noExt';
-      const loader = config.loaders[loaderKey];
-      if (!loader) {
-        throw new Error(
-          `No loader specified for ${getExtensionDescription(
-            place,
-          )}, so searchPlaces item "${place}" is invalid`,
-        );
-      }
+    [...config.searchPlaces, ...config.xdgSearchPlaces].forEach(
+      (place): void => {
+        const loaderKey = path.extname(place) || 'noExt';
+        const loader = config.loaders[loaderKey];
+        if (!loader) {
+          throw new Error(
+            `No loader specified for ${getExtensionDescription(
+              place,
+            )}, so searchPlaces item "${place}" is invalid`,
+          );
+        }
 
-      if (typeof loader !== 'function') {
-        throw new Error(
-          `loader for ${getExtensionDescription(
-            place,
-          )} is not a function (type provided: "${typeof loader}"), so searchPlaces item "${place}" is invalid`,
-        );
-      }
-    });
+        if (typeof loader !== 'function') {
+          throw new Error(
+            `loader for ${getExtensionDescription(
+              place,
+            )} is not a function (type provided: "${typeof loader}"), so searchPlaces item "${place}" is invalid`,
+          );
+        }
+      },
+    );
   }
 
   protected shouldSearchStopWithResult(result: CosmiconfigResult): boolean {

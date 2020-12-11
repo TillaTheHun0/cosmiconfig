@@ -106,6 +106,15 @@ describe('cosmiconfig', () => {
         ignoreEmptySearchPlaces: true,
         stopDir: os.homedir(),
         cache: true,
+        xdg: false,
+        xdgSearchPlaces: [
+          'config',
+          'config.json',
+          'config.yaml',
+          'config.yml',
+          'config.js',
+          'config.cjs',
+        ],
       });
     };
 
@@ -187,6 +196,15 @@ describe('cosmiconfig', () => {
         ignoreEmptySearchPlaces: false,
         stopDir: __dirname,
         cache: false,
+        xdg: false,
+        xdgSearchPlaces: [
+          'config',
+          'config.json',
+          'config.yaml',
+          'config.yml',
+          'config.js',
+          'config.cjs',
+        ],
       });
     };
 

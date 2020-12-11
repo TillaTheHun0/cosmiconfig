@@ -1,4 +1,5 @@
 import path from 'path';
+import xdgBaseDir from 'xdg-basedir';
 import { ExplorerBase } from './ExplorerBase';
 import { readFile } from './readFile';
 import { cacheWrapper } from './cacheWrapper';
@@ -14,20 +15,40 @@ class Explorer extends ExplorerBase<ExplorerOptions> {
     searchFrom: string = process.cwd(),
   ): Promise<CosmiconfigResult> {
     const startDirectory = await getDirectory(searchFrom);
-    const result = await this.searchFromDirectory(startDirectory);
+    let result = await this.searchFromDirectory(
+      startDirectory,
+      this.config.searchPlaces,
+    );
+
+    // Fallback to config in XDG config dir ie. ~/.config/${packageProp}/config.json
+    if (
+      !this.shouldSearchStopWithResult(result) &&
+      this.config.xdg &&
+      xdgBaseDir.config
+    ) {
+      result = await this.searchFromDirectory(
+        xdgBaseDir.config,
+        this.config.xdgSearchPlaces.map((xdgSearchPlace) =>
+          path.join(this.config.packageProp as string, xdgSearchPlace),
+        ),
+      );
+    }
 
     return result;
   }
 
-  private async searchFromDirectory(dir: string): Promise<CosmiconfigResult> {
+  private async searchFromDirectory(
+    dir: string,
+    searchPlaces: Array<string>,
+  ): Promise<CosmiconfigResult> {
     const absoluteDir = path.resolve(process.cwd(), dir);
 
     const run = async (): Promise<CosmiconfigResult> => {
-      const result = await this.searchDirectory(absoluteDir);
+      const result = await this.searchDirectory(absoluteDir, searchPlaces);
       const nextDir = this.nextDirectoryToSearch(absoluteDir, result);
 
       if (nextDir) {
-        return this.searchFromDirectory(nextDir);
+        return this.searchFromDirectory(nextDir, searchPlaces);
       }
 
       const transformResult = await this.config.transform(result);
@@ -42,8 +63,11 @@ class Explorer extends ExplorerBase<ExplorerOptions> {
     return run();
   }
 
-  private async searchDirectory(dir: string): Promise<CosmiconfigResult> {
-    for await (const place of this.config.searchPlaces) {
+  private async searchDirectory(
+    dir: string,
+    searchPlaces: Array<string>,
+  ): Promise<CosmiconfigResult> {
+    for await (const place of searchPlaces) {
       const placeResult = await this.loadSearchPlace(dir, place);
 
       if (this.shouldSearchStopWithResult(placeResult) === true) {

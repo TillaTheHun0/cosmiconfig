@@ -1,4 +1,5 @@
 import path from 'path';
+import xdgBaseDir from 'xdg-basedir';
 import { ExplorerBase } from './ExplorerBase';
 import { readFileSync } from './readFile';
 import { cacheWrapperSync } from './cacheWrapper';
@@ -16,20 +17,41 @@ class ExplorerSync extends ExplorerBase<ExplorerOptionsSync> {
 
   public searchSync(searchFrom: string = process.cwd()): CosmiconfigResult {
     const startDirectory = getDirectorySync(searchFrom);
-    const result = this.searchFromDirectorySync(startDirectory);
+
+    let result = this.searchFromDirectorySync(
+      startDirectory,
+      this.config.searchPlaces,
+    );
+
+    // Fallback to config in XDG config dir ie. ~/.config/${packageProp}/config.json
+    if (
+      !this.shouldSearchStopWithResult(result) &&
+      this.config.xdg &&
+      xdgBaseDir.config
+    ) {
+      result = this.searchFromDirectorySync(
+        xdgBaseDir.config,
+        this.config.xdgSearchPlaces.map((xdgSearchPlace) =>
+          path.join(this.config.packageProp as string, xdgSearchPlace),
+        ),
+      );
+    }
 
     return result;
   }
 
-  private searchFromDirectorySync(dir: string): CosmiconfigResult {
+  private searchFromDirectorySync(
+    dir: string,
+    searchPlaces: Array<string>,
+  ): CosmiconfigResult {
     const absoluteDir = path.resolve(process.cwd(), dir);
 
     const run = (): CosmiconfigResult => {
-      const result = this.searchDirectorySync(absoluteDir);
+      const result = this.searchDirectorySync(absoluteDir, searchPlaces);
       const nextDir = this.nextDirectoryToSearch(absoluteDir, result);
 
       if (nextDir) {
-        return this.searchFromDirectorySync(nextDir);
+        return this.searchFromDirectorySync(nextDir, searchPlaces);
       }
 
       const transformResult = this.config.transform(result);
@@ -44,8 +66,11 @@ class ExplorerSync extends ExplorerBase<ExplorerOptionsSync> {
     return run();
   }
 
-  private searchDirectorySync(dir: string): CosmiconfigResult {
-    for (const place of this.config.searchPlaces) {
+  private searchDirectorySync(
+    dir: string,
+    searchPlaces: Array<string>,
+  ): CosmiconfigResult {
+    for (const place of searchPlaces) {
       const placeResult = this.loadSearchPlaceSync(dir, place);
 
       if (this.shouldSearchStopWithResult(placeResult) === true) {

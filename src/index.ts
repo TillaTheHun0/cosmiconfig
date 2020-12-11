@@ -32,6 +32,8 @@ interface OptionsBase {
   ignoreEmptySearchPlaces?: boolean;
   stopDir?: string;
   cache?: boolean;
+  xdg?: boolean;
+  xdgSearchPlaces?: Array<string>;
 }
 
 export interface Options extends OptionsBase {
@@ -124,6 +126,15 @@ function normalizeOptions(
     cache: true,
     transform: identity,
     loaders: defaultLoaders,
+    xdg: false,
+    xdgSearchPlaces: [
+      'config',
+      'config.json',
+      'config.yaml',
+      'config.yml',
+      'config.js',
+      'config.cjs',
+    ],
   };
 
   const normalizedOptions: ExplorerOptions | ExplorerOptionsSync = {
